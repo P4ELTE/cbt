@@ -35,7 +35,7 @@ class VNFControl(Base):
 	return '0x%s' % format(2**inp+2**outp, 'x')
 
   def generate_core2portmapping(coremask):
-    res = []
+	res = []
 	corenum=0;
 	binvect = format(int(coremask,16),'b')
 	for i in range(-1,-1*(len(binvect)+1),-1):

@@ -27,14 +27,14 @@ class VNFControl(Base):
 
   def __init__(self, config):
     super(VNFControl, self).__init__(config, __name__)
-    self.launch_cmd = path.abspath(path.join(self.config['control_path'],
-                                       'launch.sh'))
+    #self.launch_cmd = path.abspath(path.join(self.config['control_path'],'launch.sh'))
     self.base_path = config['MAIN_ROOT']
+    self.launch_cmd='cd ~/vpetya/repos/trunk; sudo ./testL2.sh'
  
-  def generate_portmap(inp, outp):
+  def generate_portmap(self, inp, outp):
 	return '0x%s' % format(2**inp+2**outp, 'x')
 
-  def generate_core2portmapping(coremask):
+  def generate_core2portmapping(self, coremask):
 	res = []
 	corenum=0;
 	binvect = format(int(coremask,16),'b')
@@ -56,20 +56,24 @@ class VNFControl(Base):
     vnf_function = self.config['vnf_function'].lower()
 	
 	# Start the daemon
-    p4_src = path.abspath(path.join(self.config['control_path'],
-                                       'p4-ucs/%s/%s.p4' % (config['vnf_num_cores'],config['vnf_num_cores']) ) )
-	[self.hostname, controller, controller_args] = config['control_mgmt'].split(':')
-	coremask = config['vnf_num_cores']
-	port_map = generate_portmap(int(config['control_vnf_inport']), int(config['control_vnf_outport']))
-	p2c_mapping = generate_core2portmapping(coremask)
-	
-    cmd = ['ssh', self.hostname]
-    cmd.append('sudo %s %s %s %s -- -c %s -n 4 --proc-type auto -- -p %s -P --config "%s"'	% 
-	(self.launch_cmd, p4_src, controller, controller_args, coremask, port_map, p2c_mapping))
+    #p4_src = path.abspath(path.join(self.config['control_path'],
+    #                                   'p4-ucs/%s/%s.p4' % (config['vnf_num_cores'],config['vnf_num_cores']) ) )
+    #[type, self.hostname, controller, controller_args] = self.config['control_mgmt'].split(':')
+    coremask = self.config['vnf_num_cores']
+    port_map = self.generate_portmap(int(self.config['control_vnf_inport']), int(self.config['control_vnf_outport']))
+    p2c_mapping = self.generate_core2portmapping(coremask)
+    start_cmd = ["sh", "./lib/plugin/remote.dpdk.init.sh", coremask, traffictype.split('_')[-1]]
+    shutdown_cmd = ["sh", "./lib/plugin/remote.dpdk.shutdown.sh", coremask, traffictype.split('_')[-1]]
+    import pdb; pdb.set_trace()	
+    #cmd.append('sudo %s %s %s'	% 
+    #	(self.launch_cmd, coremask, traffictype.split('_')[1]))
     self.logfile = open('/tmp/nfpa-t4p4s.log', 'w')
 	
     try:
-      self.daemon = subprocess.Popen(cmd, shell=False,
+      #commands.getstatusoutput(cmd)
+      self.daemon = subprocess.Popen(shutdown_cmd, shell=False,
+                                     stdout=self.logfile, stderr=self.logfile)
+      self.daemon = subprocess.Popen(start_cmd, shell=False,
                                      stdout=self.logfile, stderr=self.logfile)
     except Exception as e:
       self.log.error('Failed to start daemon with %s' % cmd)
